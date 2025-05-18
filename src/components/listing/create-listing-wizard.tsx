@@ -18,7 +18,11 @@ import MaterialDetails from './steps/material-details';
 import LocationStep from './steps/location-step';
 import ReviewStep from './steps/review-step';
 
-export default function CreateListingWizard() {
+interface CreateListingWizardProps {
+  onSubmit?: (listingData: any) => Promise<void>;
+}
+
+export default function CreateListingWizard({ onSubmit }: CreateListingWizardProps) {
   const navigate = useNavigate();
   const { addListing } = useListings();
   const [step, setStep] = useState(1);
@@ -57,6 +61,20 @@ export default function CreateListingWizard() {
     setIsSubmitting(true);
     
     try {
+      // If external onSubmit prop is provided, use it
+      if (onSubmit) {
+        await onSubmit({
+          title: formData.title,
+          category: formData.category,
+          estimatedKg: formData.estimatedKg,
+          location: formData.location,
+          images: formData.images,
+          description: formData.description
+        });
+        return;
+      }
+      
+      // Use default implementation if no external handler provided
       // Get category price
       // In a real app, this would come from a backend API or more sophisticated pricing
       let pricePerKg = 0;
