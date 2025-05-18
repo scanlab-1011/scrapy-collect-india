@@ -1,6 +1,5 @@
-
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Check, MapPin, Package, Recycling, Scale } from 'lucide-react';
+import { ArrowRight, Check, MapPin, Package, Trash2, Scale } from 'lucide-react';
 import AppLayout from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -59,7 +58,7 @@ export default function Index() {
   return (
     <AppLayout>
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-scrapy-50 to-white">
+      <div className="bg-gradient-to-b from-scrapy-50 to-white">
         <div className="container py-12 md:py-16 lg:py-20">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             <div className="space-y-6">
@@ -79,7 +78,7 @@ export default function Index() {
                 </Button>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Recycling className="h-4 w-4" />
+                <Trash2 className="h-4 w-4" />
                 <span>Join the recycling revolution. Reduce waste, earn money.</span>
               </div>
             </div>
@@ -92,7 +91,7 @@ export default function Index() {
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* Materials Section */}
       <section className="py-12 bg-white">
