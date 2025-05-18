@@ -6,7 +6,7 @@ import AppLayout from '@/components/layout/app-layout';
 import CreateListingWizard from '@/components/listing/create-listing-wizard';
 import { UserRole } from '@/types';
 import { useAuth } from '@/contexts/auth-context';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export default function NewListing() {
   const { user, isLoading } = useAuth();
@@ -14,15 +14,31 @@ export default function NewListing() {
 
   // Check if user is authenticated as a seller
   useEffect(() => {
-    if (!isLoading && (!user || user.role !== UserRole.SELLER)) {
-      toast.error("You must be logged in as a seller to create listings");
-      navigate('/login?redirect=/listings/new');
+    if (!isLoading) {
+      if (!user) {
+        toast.error("You must be logged in to create listings");
+        navigate('/login?redirect=/listings/new');
+      } else if (user.role !== UserRole.SELLER) {
+        toast.error("Only sellers can create listings");
+        navigate('/');
+      }
+      
+      // Check if Supabase is configured
+      if (!isSupabaseConfigured()) {
+        toast.error("Supabase is not properly configured. Please set environment variables.");
+      }
     }
   }, [user, isLoading, navigate]);
 
   // Handler for form submission
   const handleCreateListing = async (listingData: any) => {
     try {
+      // Validate Supabase configuration before attempting to use it
+      if (!isSupabaseConfigured()) {
+        toast.error("Cannot create listing: Supabase is not configured properly");
+        return;
+      }
+      
       // Upload images to Supabase storage if provided
       const imageUrls = [];
       if (listingData.images && listingData.images.length > 0) {

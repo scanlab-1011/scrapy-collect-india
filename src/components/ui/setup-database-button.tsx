@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { setupSupabaseTables } from '@/lib/supabase-setup';
 import { toast } from '@/components/ui/sonner';
+import { isSupabaseConfigured } from '@/lib/supabase';
 import {
   Dialog,
   DialogContent,
@@ -20,8 +21,8 @@ export function SetupDatabaseButton() {
     try {
       setIsLoading(true);
       
-      // Check if environment variables are set
-      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+      // Check if environment variables are set using our helper
+      if (!isSupabaseConfigured()) {
         setShowEnvHelp(true);
         return;
       }
