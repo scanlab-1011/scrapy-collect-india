@@ -4,11 +4,12 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { Package } from 'lucide-react';
+import { Package, User } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { UserRole } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Card,
   CardContent,
@@ -25,51 +26,70 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { USERS } from '@/lib/data';
 
-const formSchema = z.object({
+const loginSchema = z.object({
   email: z.string().email('Please enter a valid email'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
+const signupSchema = loginSchema.extend({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  phone: z.string().optional(),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
+type SignupFormValues = z.infer<typeof signupSchema>;
+
 export default function Login() {
-  const { login } = useAuth();
+  const { login, signup } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
   
   // Get redirect URL from query params or default based on role
   const queryParams = new URLSearchParams(location.search);
   const redirectUrl = queryParams.get('redirect') || '/';
   
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const loginForm = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
+      password: '',
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  const signupForm = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      name: '',
+      phone: '',
+    },
+  });
+
+  async function onLoginSubmit(values: LoginFormValues) {
     setIsSubmitting(true);
     
     try {
-      await login(values.email);
-      
-      // Find the user to determine where to redirect
-      const user = USERS.find(u => u.email === values.email);
-      
-      if (user) {
-        if (redirectUrl !== '/') {
-          navigate(redirectUrl);
-        } else if (user.role === UserRole.SELLER) {
-          navigate('/listings');
-        } else {
-          navigate('/dashboard/queue');
-        }
-      } else {
-        navigate('/');
-      }
+      await login(values.email, values.password);
+      navigate(redirectUrl);
     } catch (error) {
       console.error('Login failed:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function onSignupSubmit(values: SignupFormValues) {
+    setIsSubmitting(true);
+    
+    try {
+      await signup(values.email, values.password, values.name, values.phone);
+      navigate('/listings');
+    } catch (error) {
+      console.error('Signup failed:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -85,51 +105,158 @@ export default function Login() {
       
       <Card>
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl text-center">Login</CardTitle>
+          <CardTitle className="text-2xl text-center">Welcome to Scrapy</CardTitle>
           <CardDescription className="text-center">
-            Enter your email to sign in to your account
+            {activeTab === 'login' 
+              ? 'Log in to your account to manage your scrap pickups' 
+              : 'Create an account to start selling your scrap'}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="email@example.com" 
-                        type="email" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button className="w-full" type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Signing in...' : 'Sign In'}
-              </Button>
-            </form>
-          </Form>
+        
+        <Tabs defaultValue="login" value={activeTab} onValueChange={(v) => setActiveTab(v as 'login' | 'signup')}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="login">Login</TabsTrigger>
+            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+          </TabsList>
           
-          <div className="mt-6">
-            <h3 className="text-sm font-medium mb-2">Demo Accounts:</h3>
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p>Seller: rahul@example.com</p>
-              <p>Staff: vikram@scrapy.in</p>
-              <p>Admin: aditya@scrapy.in</p>
-            </div>
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col">
+          <TabsContent value="login">
+            <CardContent className="pt-6">
+              <Form {...loginForm}>
+                <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+                  <FormField
+                    control={loginForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="email@example.com" 
+                            type="email" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={loginForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="••••••••" 
+                            type="password" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button className="w-full" type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'Signing in...' : 'Sign In'}
+                  </Button>
+                </form>
+              </Form>
+              
+              <div className="mt-6">
+                <h3 className="text-sm font-medium mb-2">Demo Accounts:</h3>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>For testing purposes only.</p>
+                  <p>Seller: rahul@example.com / password123</p>
+                  <p>Staff: vikram@scrapy.in / password123</p>
+                  <p>Admin: aditya@scrapy.in / password123</p>
+                </div>
+              </div>
+            </CardContent>
+          </TabsContent>
+          
+          <TabsContent value="signup">
+            <CardContent className="pt-6">
+              <Form {...signupForm}>
+                <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4">
+                  <FormField
+                    control={signupForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Name</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Full Name" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={signupForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="email@example.com" 
+                            type="email" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={signupForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="••••••••" 
+                            type="password" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={signupForm.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone (Optional)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="9876543210" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button className="w-full" type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'Creating Account...' : 'Create Account'}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </TabsContent>
+        </Tabs>
+        
+        <CardFooter className="flex flex-col pt-0">
           <p className="text-sm text-muted-foreground text-center">
-            In a real application, this would send a magic link to your email.
-            <br />
-            For demo purposes, just enter any of the above emails to log in.
+            By continuing, you agree to Scrapy's Terms of Service and Privacy Policy.
           </p>
         </CardFooter>
       </Card>

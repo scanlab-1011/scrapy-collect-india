@@ -4,10 +4,13 @@ import AppLayout from '@/components/layout/app-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { SCRAP_CATEGORIES } from '@/lib/utils';
-import { ScrapType } from '@/types';
+import { ScrapType, UserRole } from '@/types';
+import { useAuth } from '@/contexts/auth-context';
+import { SetupDatabaseButton } from '@/components/ui/setup-database-button';
 
 export default function Index() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   const features = [
     {
@@ -74,13 +77,24 @@ export default function Index() {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
                 <Button size="lg" variant="outline" onClick={() => navigate('/login')}>
-                  Login
+                  {user ? 'Dashboard' : 'Login'}
                 </Button>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Trash2 className="h-4 w-4" />
                 <span>Join the recycling revolution. Reduce waste, earn money.</span>
               </div>
+              
+              {/* Admin database setup section */}
+              {user?.role === UserRole.ADMIN && (
+                <div className="p-4 border rounded-md mt-4 bg-slate-50">
+                  <h3 className="text-sm font-medium mb-2">Admin Tools</h3>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Set up the Supabase database tables and policies
+                  </p>
+                  <SetupDatabaseButton />
+                </div>
+              )}
             </div>
             <div className="hidden lg:block">
               <img 
