@@ -1,128 +1,115 @@
 
-import { Link } from 'react-router-dom';
-import { Calendar, MapPin, Package, Scale } from 'lucide-react';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Listing, ListingStatus, UserRole } from '@/types';
-import { 
-  formatDate, 
-  formatPrice, 
-  getStatusColor, 
-  getCategoryByType 
-} from '@/lib/utils';
-import { useAuth } from '@/contexts/auth-context';
+import { Link } from "react-router-dom";
+import { Package, Calendar, MapPin } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { ListingStatus, type Listing } from "@/types";
+import { formatDate, formatPrice, formatTime, getStatusColor } from "@/lib/utils";
+import { useCurrentUser, useHasRole } from "@/contexts/auth-context";
+import { UserRole } from "@/types";
 
 interface ListingCardProps {
   listing: Listing;
-  showActions?: boolean;
-  onScheduleClick?: (id: string) => void;
-  onCollectClick?: (id: string) => void;
 }
 
-export default function ListingCard({ 
-  listing, 
-  showActions = false,
-  onScheduleClick,
-  onCollectClick
-}: ListingCardProps) {
-  const { user } = useAuth();
-  const category = getCategoryByType(listing.category);
-  const isStaff = user?.role === UserRole.STAFF || user?.role === UserRole.ADMIN;
+export function ListingCard({ listing }: ListingCardProps) {
+  const currentUser = useCurrentUser();
+  const isStaffOrAdmin = useHasRole(UserRole.STAFF) || useHasRole(UserRole.ADMIN);
   
   // Determine card link based on user role
-  const cardLink = isStaff 
-    ? `/dashboard/listings/${listing.id}` 
-    : `/listings/${listing.id}`;
-
+  const cardLink = isStaffOrAdmin ? `/dashboard/listings/${listing.id}` : `/listings/${listing.id}`;
+  
+  const isOwn = currentUser && listing.seller && currentUser.id === listing.seller.id;
+  
   return (
-    <Card className="h-full overflow-hidden flex flex-col">
-      <div className="aspect-[16/9] relative overflow-hidden">
-        {listing.images && listing.images.length > 0 ? (
-          <img 
-            src={listing.images[0]} 
-            alt={listing.title}
-            className="w-full h-full object-cover transition-transform hover:scale-105"
-          />
-        ) : (
-          <div className="w-full h-full bg-muted flex items-center justify-center">
-            <Package className="h-10 w-10 text-muted-foreground" />
-          </div>
-        )}
-        <div className="absolute top-2 right-2">
-          <Badge className={getStatusColor(listing.status)}>
-            {listing.status}
-          </Badge>
-        </div>
-      </div>
-
-      <CardHeader className="p-4 pb-2">
-        <Link to={cardLink}>
-          <CardTitle className="text-lg line-clamp-1 hover:underline">
-            {listing.title}
-          </CardTitle>
-        </Link>
-        <div className="flex items-center gap-1 mt-1">
-          <div className={`w-3 h-3 rounded-full ${category.color}`}></div>
-          <CardDescription className="text-xs">
-            {category.name}
-          </CardDescription>
-        </div>
-      </CardHeader>
-
-      <CardContent className="p-4 pt-0 flex-grow">
-        <div className="flex flex-col gap-2 text-sm">
-          <div className="flex gap-2 items-center">
-            <Scale className="h-4 w-4 text-muted-foreground" />
-            <span>
-              Est. {listing.estimatedKg} kg · {formatPrice(listing.pricePerKg)}/kg
-            </span>
-          </div>
-          {listing.location && (
-            <div className="flex gap-2 items-center">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span className="line-clamp-1">
-                {listing.location.city}, {listing.location.state}
-              </span>
+    <Card className="overflow-hidden">
+      <Link to={cardLink} className="h-full flex flex-col">
+        {/* Image or placeholder */}
+        <div className="aspect-[16/9] relative bg-muted">
+          {listing.images && listing.images.length > 0 ? (
+            <img 
+              src={listing.images[0]} 
+              alt={listing.title} 
+              className="object-cover w-full h-full"
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <Package className="h-12 w-12 text-muted-foreground opacity-30" />
             </div>
           )}
-          {listing.pickupAt && (
-            <div className="flex gap-2 items-center">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span>Pickup: {formatDate(listing.pickupAt)}</span>
+          
+          {/* Status Badge */}
+          <div className="absolute top-2 right-2">
+            <Badge className={getStatusColor(listing.status)}>
+              {listing.status}
+            </Badge>
+          </div>
+          
+          {/* Owner Badge */}
+          {isOwn && (
+            <div className="absolute top-2 left-2">
+              <Badge variant="outline" className="bg-white bg-opacity-80">
+                Your Listing
+              </Badge>
             </div>
           )}
         </div>
-      </CardContent>
-
-      {showActions && isStaff && (
-        <CardFooter className="p-4 pt-0 flex justify-end gap-2">
-          {listing.status === ListingStatus.PENDING && onScheduleClick && (
-            <Button 
-              variant="outline" 
-              onClick={() => onScheduleClick(listing.id)}
-              className="text-xs h-8"
-            >
-              Schedule Pickup
-            </Button>
+        
+        <CardHeader className="pb-2">
+          <h3 className="font-semibold text-lg line-clamp-1">{listing.title}</h3>
+          <p className="text-sm text-muted-foreground line-clamp-1">
+            {listing.category}
+          </p>
+        </CardHeader>
+        
+        <CardContent className="pb-4 space-y-3">
+          {/* Location */}
+          <div className="flex items-start gap-2">
+            <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+            <p className="text-sm line-clamp-1">
+              {listing.location.city}, {listing.location.state}
+            </p>
+          </div>
+          
+          {/* Weight and Price */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-xs text-muted-foreground">Est. weight</p>
+              <p className="font-medium">{listing.estimatedKg} kg</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Price per kg</p>
+              <p className="font-medium">{formatPrice(listing.pricePerKg)}</p>
+            </div>
+          </div>
+          
+          {/* Show pickup info for scheduled listings */}
+          {listing.status === ListingStatus.SCHEDULED && (
+            <>
+              <Separator />
+              <div className="flex items-start gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div className="text-sm">
+                  <p>Pickup on {formatDate(listing.pickupAt)}</p>
+                  <p className="text-xs text-muted-foreground">at {formatTime(listing.pickupAt)}</p>
+                </div>
+              </div>
+            </>
           )}
-          {listing.status === ListingStatus.SCHEDULED && onCollectClick && (
-            <Button 
-              onClick={() => onCollectClick(listing.id)}
-              className="text-xs h-8"
-            >
-              Mark Collected
-            </Button>
-          )}
+        </CardContent>
+        
+        <CardFooter className="pt-0 mt-auto">
+          <div className="text-sm text-muted-foreground">
+            {isStaffOrAdmin ? "View Details" : "Check Status"}
+          </div>
         </CardFooter>
-      )}
+      </Link>
     </Card>
   );
 }
