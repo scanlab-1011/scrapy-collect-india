@@ -22,8 +22,8 @@ console.log('Supabase URL configured:', !!supabaseUrl);
 
 // Create the Supabase client with additional debug options
 export const supabase = createClient(
-  supabaseUrl || 'https://placeholder-only-for-development.supabase.co',
-  supabaseKey || 'placeholder-only-for-development',
+  supabaseUrl || 'https://jpphpioyppvrycfsjhhv.supabase.co',
+  supabaseKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwcGhwaW95cHB2cnljZnNqaGh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzcxNjU2OTEsImV4cCI6MjA1Mjc0MTY5MX0.TCqad0DH2E2qIKzpJdkFNgqECl6Hu1bHnv8VxO85QMY',
   {
     auth: {
       persistSession: true,
