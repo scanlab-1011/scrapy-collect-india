@@ -6,7 +6,8 @@ import AppLayout from '@/components/layout/app-layout';
 import CreateListingWizard from '@/components/listing/create-listing-wizard';
 import { UserRole } from '@/types';
 import { useAuth } from '@/contexts/auth-context';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { isSupabaseConfigured } from '@/lib/supabase';
+import { ApiClient, ApiError } from '@/lib/api-client';
 
 export default function NewListing() {
   const { user, isLoading } = useAuth();
@@ -33,54 +34,25 @@ export default function NewListing() {
   // Handler for form submission
   const handleCreateListing = async (listingData: any) => {
     try {
-      // Validate Supabase configuration before attempting to use it
-      if (!isSupabaseConfigured()) {
-        toast.error("Cannot create listing: Supabase is not configured properly");
+      // Validate user is available
+      if (!user?.id) {
+        toast.error("Authentication error: User ID not found.");
         return;
       }
       
-      // Upload images to Supabase storage if provided
-      const imageUrls = [];
-      if (listingData.images && listingData.images.length > 0) {
-        for (const image of listingData.images) {
-          const fileExt = image.name.split('.').pop();
-          const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-          const filePath = `listings/${user?.id}/${fileName}`;
-          
-          const { error: uploadError } = await supabase.storage
-            .from('scrap-images')
-            .upload(filePath, image);
-            
-          if (uploadError) throw uploadError;
-          
-          const { data } = supabase.storage
-            .from('scrap-images')
-            .getPublicUrl(filePath);
-            
-          imageUrls.push(data.publicUrl);
-        }
-      }
-      
-      // Save listing to database
-      const { data, error } = await supabase
-        .from('listings')
-        .insert([
-          {
-            title: listingData.title,
-            category: listingData.category,
-            estimated_kg: listingData.estimatedKg,
-            price_per_kg: listingData.pricePerKg,
-            location: listingData.location,
-            images: imageUrls.length ? imageUrls : null,
-            status: 'PENDING',
-            seller_id: user?.id
-          }
-        ])
-        .select()
-        .single();
+      // Create the listing using our API client
+      const data = await ApiClient.createListing(
+        {
+          title: listingData.title,
+          category: listingData.category,
+          estimatedKg: listingData.estimatedKg,
+          pricePerKg: listingData.pricePerKg,
+          location: listingData.location,
+        },
+        user.id,
+        listingData.images
+      );
         
-      if (error) throw error;
-      
       toast.success("Listing created successfully!");
       navigate(`/listings/${data.id}`);
       

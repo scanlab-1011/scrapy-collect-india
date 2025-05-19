@@ -26,3 +26,37 @@ export const supabase = createClient(
 export const isSupabaseConfigured = () => {
   return !!(supabaseUrl && supabaseKey);
 };
+
+// Helper to get current session
+export const getCurrentSession = async () => {
+  if (!isSupabaseConfigured()) {
+    console.error('Supabase not configured, cannot get session');
+    return null;
+  }
+  
+  const { data, error } = await supabase.auth.getSession();
+  
+  if (error) {
+    console.error('Error getting session:', error);
+    return null;
+  }
+  
+  return data.session;
+};
+
+// Helper to get current user
+export const getCurrentUser = async () => {
+  if (!isSupabaseConfigured()) {
+    console.error('Supabase not configured, cannot get user');
+    return null;
+  }
+  
+  const { data, error } = await supabase.auth.getUser();
+  
+  if (error) {
+    console.error('Error getting user:', error);
+    return null;
+  }
+  
+  return data.user;
+};

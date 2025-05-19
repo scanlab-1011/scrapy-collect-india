@@ -31,7 +31,15 @@ export function SetupDatabaseButton() {
       toast.success('Database setup completed successfully!');
     } catch (error: any) {
       console.error('Setup failed:', error);
-      toast.error(error.message || 'Database setup failed');
+      
+      // Display more specific error message
+      if (error.message?.includes('authentication')) {
+        toast.error('Authentication error: Please check your Supabase API keys');
+      } else if (error.message?.includes('permission')) {
+        toast.error('Permission denied: Please check your Supabase permissions');
+      } else {
+        toast.error(error.message || 'Database setup failed');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -63,8 +71,11 @@ export function SetupDatabaseButton() {
                   VITE_SUPABASE_ANON_KEY=your-anon-key
                 </p>
               </div>
-              <p>
+              <p className="mb-4">
                 You can find these values in your Supabase project dashboard under Project Settings → API.
+              </p>
+              <p className="text-amber-500">
+                Note: For production, these environment variables must be set on your hosting platform.
               </p>
             </DialogDescription>
           </DialogHeader>
