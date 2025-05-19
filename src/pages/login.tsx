@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
@@ -25,6 +26,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { toast } from '@/components/ui/sonner';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email'),
@@ -49,9 +51,9 @@ export default function Login() {
   
   // Get redirect URL from query params or default based on role
   const queryParams = new URLSearchParams(location.search);
-  const redirectUrl = queryParams.get('redirect') || '/';
+  const redirectUrl = queryParams.get('redirect') || '/listings';
   
-  console.log('Login page:', { 
+  console.log('Login page loaded:', { 
     redirectUrl, 
     userLoggedIn: !!user, 
     authLoading,
@@ -62,16 +64,17 @@ export default function Login() {
   // Redirect if already logged in
   useEffect(() => {
     if (user && !authLoading) {
-      // Only redirect if we're on the login page (prevent redirects during initial load)
       console.log(`User already logged in as ${user.email} with role ${user.role}, redirecting to:`, redirectUrl);
       
       // Use setTimeout to ensure this happens after render cycle
       setTimeout(() => {
+        console.log("Executing redirect now to:", redirectUrl);
         navigate(redirectUrl, { replace: true });
-      }, 100);
+      }, 0);
     }
   }, [user, navigate, redirectUrl, authLoading]);
 
+  // Setup login form
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -80,6 +83,7 @@ export default function Login() {
     },
   });
 
+  // Setup signup form
   const signupForm = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
@@ -99,10 +103,12 @@ export default function Login() {
       await login(values.email, values.password);
       console.log('Login successful, redirecting to:', redirectUrl);
       
-      // Direct navigate with replace to avoid history issues
+      toast.success("Login successful!");
+      // Navigate with replace to avoid history issues
       navigate(redirectUrl, { replace: true });
     } catch (error) {
       console.error('Login failed:', error);
+      toast.error("Login failed. Please check your credentials.");
     } finally {
       setIsSubmitting(false);
     }
@@ -120,12 +126,12 @@ export default function Login() {
         values.phone, 
         values.role || UserRole.SELLER
       );
-      // For new signups, redirect to listings page instead of potentially protected area
-      const signupRedirect = '/listings';
-      console.log('Signup successful, redirecting to:', signupRedirect);
-      navigate(signupRedirect, { replace: true });
+      toast.success("Account created successfully!");
+      // For new signups, redirect to listings page
+      navigate('/listings', { replace: true });
     } catch (error) {
       console.error('Signup failed:', error);
+      toast.error("Signup failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

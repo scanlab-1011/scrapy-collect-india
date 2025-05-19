@@ -48,10 +48,18 @@ export default function AppLayout({
   // Check authentication requirements
   if (requireAuth && !user) {
     console.warn('Authentication required but no user found. Redirecting to login.');
+    
     // Show a toast to inform the user
     toast.error("Please log in to access this page");
+    
+    // Don't include the current path if it's already the login page to avoid loops
+    if (location.pathname.includes("/login")) {
+      return <Navigate to="/login" replace />;
+    }
+    
     // Store the attempted URL as the redirect destination
     const redirectPath = encodeURIComponent(location.pathname + location.search);
+    
     // Redirect to login with return URL
     return <Navigate to={`/login?redirect=${redirectPath}`} replace />;
   }
@@ -60,6 +68,7 @@ export default function AppLayout({
   if (user && allowedRoles && !allowedRoles.includes(user.role)) {
     console.warn(`User role ${user.role} not allowed. Allowed roles:`, allowedRoles);
     toast.error("You don't have permission to access this page");
+    
     // Redirect to appropriate page based on role
     if (user.role === UserRole.SELLER) {
       return <Navigate to="/listings" replace />;
