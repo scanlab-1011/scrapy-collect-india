@@ -28,6 +28,20 @@ export const supabase = createClient(
     auth: {
       persistSession: true,
       autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storage: {
+        // Use local storage instead of cookies to ensure session persistence
+        getItem: (key) => {
+          const value = localStorage.getItem(key);
+          console.log(`Retrieved auth from storage for ${key}:`, value ? 'exists' : 'not found');
+          return value;
+        },
+        setItem: (key, value) => {
+          console.log(`Setting auth in storage for ${key}`);
+          localStorage.setItem(key, value);
+        },
+        removeItem: (key) => localStorage.removeItem(key)
+      },
       debug: import.meta.env.MODE === 'development'
     }
   }

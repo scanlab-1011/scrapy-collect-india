@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { Package, User } from 'lucide-react';
+import { Package } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { UserRole } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -41,7 +41,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 type SignupFormValues = z.infer<typeof signupSchema>;
 
 export default function Login() {
-  const { login, signup } = useAuth();
+  const { user, login, signup, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,6 +51,16 @@ export default function Login() {
   const queryParams = new URLSearchParams(location.search);
   const redirectUrl = queryParams.get('redirect') || '/';
   
+  console.log('Login page:', { redirectUrl, userLoggedIn: !!user, authLoading });
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user && !authLoading) {
+      console.log(`User already logged in as ${user.email} with role ${user.role}, redirecting to:`, redirectUrl);
+      navigate(redirectUrl);
+    }
+  }, [user, navigate, redirectUrl, authLoading]);
+
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -74,7 +84,9 @@ export default function Login() {
     setIsSubmitting(true);
     
     try {
+      console.log('Login form submitted:', values.email);
       await login(values.email, values.password);
+      console.log('Login successful, redirecting to:', redirectUrl);
       navigate(redirectUrl);
     } catch (error) {
       console.error('Login failed:', error);
@@ -93,14 +105,32 @@ export default function Login() {
         values.password, 
         values.name, 
         values.phone, 
-        values.role || UserRole.SELLER // Make sure role is passed
+        values.role || UserRole.SELLER
       );
-      navigate('/listings');
+      // For new signups, redirect to listings page instead of potentially protected area
+      const defaultRedirect = '/listings';
+      console.log('Signup successful, redirecting to:', defaultRedirect);
+      navigate(defaultRedirect);
     } catch (error) {
       console.error('Signup failed:', error);
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  // If we're already logged in and not loading, don't show the login form
+  if (user && !authLoading) {
+    return (
+      <div className="container max-w-md py-12 flex flex-col items-center">
+        <div className="text-center mb-4">
+          <p>You are already logged in.</p>
+          <p className="text-muted-foreground">Redirecting...</p>
+        </div>
+        <Button onClick={() => navigate(redirectUrl)}>
+          Continue to {redirectUrl}
+        </Button>
+      </div>
+    );
   }
 
   return (
@@ -165,7 +195,7 @@ export default function Login() {
                       </FormItem>
                     )}
                   />
-                  <Button className="w-full" type="submit" disabled={isSubmitting}>
+                  <Button className="w-full" type="submit" disabled={isSubmitting || authLoading}>
                     {isSubmitting ? 'Signing in...' : 'Sign In'}
                   </Button>
                 </form>
@@ -263,7 +293,7 @@ export default function Login() {
                     )}
                   />
                   
-                  <Button className="w-full" type="submit" disabled={isSubmitting}>
+                  <Button className="w-full" type="submit" disabled={isSubmitting || authLoading}>
                     {isSubmitting ? 'Creating Account...' : 'Create Account'}
                   </Button>
                 </form>
