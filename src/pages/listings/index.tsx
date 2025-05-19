@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import AppLayout from '@/components/layout/app-layout';
-import ListingCard from '@/components/ui/listing-card';
+import { ListingCard } from '@/components/ui/listing-card';
 import { Button } from '@/components/ui/button';
 import { UserRole, ListingStatus } from '@/types';
 import { useListings } from '@/contexts/listing-context';
