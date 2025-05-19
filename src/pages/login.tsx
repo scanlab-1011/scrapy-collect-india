@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
@@ -35,6 +34,7 @@ const loginSchema = z.object({
 const signupSchema = loginSchema.extend({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   phone: z.string().optional(),
+  role: z.enum([UserRole.SELLER, UserRole.STAFF, UserRole.ADMIN]).default(UserRole.SELLER),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -66,6 +66,7 @@ export default function Login() {
       password: '',
       name: '',
       phone: '',
+      role: UserRole.SELLER,
     },
   });
 
@@ -84,9 +85,16 @@ export default function Login() {
 
   async function onSignupSubmit(values: SignupFormValues) {
     setIsSubmitting(true);
+    console.log("Submitting signup with values:", values);
     
     try {
-      await signup(values.email, values.password, values.name, values.phone);
+      await signup(
+        values.email, 
+        values.password, 
+        values.name, 
+        values.phone, 
+        values.role || UserRole.SELLER // Make sure role is passed
+      );
       navigate('/listings');
     } catch (error) {
       console.error('Signup failed:', error);
@@ -245,6 +253,16 @@ export default function Login() {
                       </FormItem>
                     )}
                   />
+                  
+                  {/* Add a hidden role field that defaults to SELLER */}
+                  <FormField
+                    control={signupForm.control}
+                    name="role"
+                    render={({ field }) => (
+                      <input type="hidden" {...field} value={UserRole.SELLER} />
+                    )}
+                  />
+                  
                   <Button className="w-full" type="submit" disabled={isSubmitting}>
                     {isSubmitting ? 'Creating Account...' : 'Create Account'}
                   </Button>

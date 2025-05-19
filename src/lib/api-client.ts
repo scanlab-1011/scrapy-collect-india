@@ -1,5 +1,5 @@
-
 import { supabase, isSupabaseConfigured } from './supabase';
+import { toast } from '@/components/ui/sonner';
 
 // Error class for API errors
 export class ApiError extends Error {
@@ -24,36 +24,69 @@ export class ApiClient {
   static async login(email: string, password: string) {
     this.checkSupabaseConfig();
     
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      console.error('Authentication error:', error);
-      throw new ApiError(error.message, 401);
+      if (error) {
+        console.error('Authentication error:', error);
+        throw new ApiError(error.message, 401);
+      }
+
+      return data;
+    } catch (error: any) {
+      console.error('Login error details:', error);
+      if (error?.message?.includes('JSON object requested') || 
+          error?.code === 'PGRST116') {
+        throw new ApiError('User profile not found. Please check your credentials or sign up.', 404);
+      }
+      throw error;
     }
-
-    return data;
   }
 
   static async signup(email: string, password: string, metadata?: any) {
     this.checkSupabaseConfig();
     
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: metadata
+    try {
+      console.log("API Client signup with metadata:", metadata);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: metadata
+        }
+      });
+
+      if (error) {
+        console.error('Signup error:', error);
+        throw new ApiError(error.message, 400);
       }
-    });
 
-    if (error) {
-      console.error('Signup error:', error);
-      throw new ApiError(error.message, 400);
+      // Explicitly set user role in the users table
+      if (data.user) {
+        const { error: userError } = await supabase
+          .from('users')
+          .insert([{
+            id: data.user.id,
+            email: email,
+            name: metadata?.name,
+            phone: metadata?.phone,
+            role: metadata?.role || 'SELLER'
+          }]);
+          
+        if (userError) {
+          console.error('Error creating user profile:', userError);
+          throw new ApiError(userError.message, 500);
+        }
+      }
+
+      return data;
+    } catch (error: any) {
+      console.error('Signup error details:', error);
+      throw error;
     }
-
-    return data;
   }
 
   static async logout() {

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '@/types';
 import { supabase } from '@/lib/supabase';
@@ -7,7 +6,7 @@ import { toast } from '@/components/ui/sonner';
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name?: string, phone?: string) => Promise<void>;
+  signup: (email: string, password: string, name?: string, phone?: string, role?: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   isLoading: boolean;
 }
@@ -56,13 +55,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch user profile from Supabase
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log("Fetching user profile for:", userId);
       const { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        throw error;
+      }
+      
+      console.log("User profile retrieved:", data);
       
       if (data) {
         setUser({
@@ -100,7 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signup = async (email: string, password: string, name?: string, phone?: string) => {
+  const signup = async (email: string, password: string, name?: string, phone?: string, role: UserRole = UserRole.SELLER) => {
     try {
       setIsLoading(true);
       
@@ -111,7 +116,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         options: {
           data: {
             name,
-            phone
+            phone,
+            role
           }
         }
       });
@@ -119,21 +125,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (authError) throw authError;
       if (!authData.user) throw new Error("Failed to create user");
       
-      // Create user profile in the users table
+      console.log("Auth signup successful, creating user profile with ID:", authData.user.id);
+      
+      // Create user profile in the users table with explicitly specified role
       const { error: profileError } = await supabase.from('users').insert([
         {
           id: authData.user.id,
           email,
           name,
           phone,
-          role: UserRole.SELLER, // Default role for new signups
+          role: role, // Use the role parameter with default value
         }
       ]);
       
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error("Error creating user profile:", profileError);
+        throw profileError;
+      }
       
+      console.log("User profile created successfully");
       toast.success("Account created successfully!");
     } catch (error: any) {
+      console.error("Signup error:", error);
       toast.error(error.message || "Signup failed. Please try again.");
       throw error;
     } finally {
