@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '@/types';
 import { supabase } from '@/lib/supabase';
@@ -46,14 +45,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Auth state change event:', event);
         if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
           console.log('Auth state change: User signed in or token refreshed');
-          fetchUserProfile(session.user.id);
+          await fetchUserProfile(session.user.id);
         } else if (event === 'SIGNED_OUT') {
           console.log('Auth state change: User signed out');
           setUser(null);
           setIsLoading(false);
         } else {
-          setUser(null);
-          setIsLoading(false);
+          console.log('Auth state change: Other event', event);
+          if (!user) {
+            setIsLoading(false);
+          }
         }
       }
     );
@@ -81,6 +82,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: authUser } = await supabase.auth.getUser();
         if (authUser.user) {
           console.log('Using auth user data as fallback');
+          
+          // Create a user profile since it doesn't exist
+          const { error: insertError } = await supabase
+            .from('users')
+            .insert({
+              id: authUser.user.id,
+              email: authUser.user.email || '',
+              name: authUser.user.user_metadata?.name || '',
+              phone: authUser.user.user_metadata?.phone || '',
+              role: (authUser.user.user_metadata?.role as UserRole) || UserRole.SELLER,
+            });
+            
+          if (insertError) {
+            console.error('Error creating missing user profile:', insertError);
+          } else {
+            console.log('Created missing user profile');
+            // Try fetching the profile again
+            return fetchUserProfile(userId);
+          }
+          
+          // Use auth data as fallback
           setUser({
             id: authUser.user.id,
             email: authUser.user.email || '',
@@ -106,6 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
+      setUser(null);
     } finally {
       setIsLoading(false);
     }

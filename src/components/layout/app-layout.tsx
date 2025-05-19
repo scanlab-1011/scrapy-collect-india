@@ -29,10 +29,11 @@ export default function AppLayout({
         isLoading, 
         loggedIn: !!user, 
         userRole: user?.role,
-        allowedRoles
+        allowedRoles,
+        currentPath: location.pathname
       });
     }
-  }, [requireAuth, isLoading, user, allowedRoles]);
+  }, [requireAuth, isLoading, user, allowedRoles, location.pathname]);
 
   // Check if loading
   if (isLoading) {
@@ -49,8 +50,10 @@ export default function AppLayout({
     console.warn('Authentication required but no user found. Redirecting to login.');
     // Show a toast to inform the user
     toast.error("Please log in to access this page");
+    // Store the attempted URL as the redirect destination
+    const redirectPath = encodeURIComponent(location.pathname + location.search);
     // Redirect to login with return URL
-    return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname)}`} replace />;
+    return <Navigate to={`/login?redirect=${redirectPath}`} replace />;
   }
 
   // Check role requirements

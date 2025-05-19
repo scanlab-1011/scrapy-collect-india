@@ -51,13 +51,24 @@ export default function Login() {
   const queryParams = new URLSearchParams(location.search);
   const redirectUrl = queryParams.get('redirect') || '/';
   
-  console.log('Login page:', { redirectUrl, userLoggedIn: !!user, authLoading });
+  console.log('Login page:', { 
+    redirectUrl, 
+    userLoggedIn: !!user, 
+    authLoading,
+    currentPath: location.pathname,
+    searchParams: location.search
+  });
 
   // Redirect if already logged in
   useEffect(() => {
     if (user && !authLoading) {
+      // Only redirect if we're on the login page (prevent redirects during initial load)
       console.log(`User already logged in as ${user.email} with role ${user.role}, redirecting to:`, redirectUrl);
-      navigate(redirectUrl);
+      
+      // Use setTimeout to ensure this happens after render cycle
+      setTimeout(() => {
+        navigate(redirectUrl, { replace: true });
+      }, 100);
     }
   }, [user, navigate, redirectUrl, authLoading]);
 
@@ -87,7 +98,9 @@ export default function Login() {
       console.log('Login form submitted:', values.email);
       await login(values.email, values.password);
       console.log('Login successful, redirecting to:', redirectUrl);
-      navigate(redirectUrl);
+      
+      // Direct navigate with replace to avoid history issues
+      navigate(redirectUrl, { replace: true });
     } catch (error) {
       console.error('Login failed:', error);
     } finally {
@@ -108,9 +121,9 @@ export default function Login() {
         values.role || UserRole.SELLER
       );
       // For new signups, redirect to listings page instead of potentially protected area
-      const defaultRedirect = '/listings';
-      console.log('Signup successful, redirecting to:', defaultRedirect);
-      navigate(defaultRedirect);
+      const signupRedirect = '/listings';
+      console.log('Signup successful, redirecting to:', signupRedirect);
+      navigate(signupRedirect, { replace: true });
     } catch (error) {
       console.error('Signup failed:', error);
     } finally {
@@ -118,16 +131,16 @@ export default function Login() {
     }
   }
 
-  // If we're already logged in and not loading, don't show the login form
+  // If we're already logged in and not loading, show redirect message
   if (user && !authLoading) {
     return (
       <div className="container max-w-md py-12 flex flex-col items-center">
         <div className="text-center mb-4">
           <p>You are already logged in.</p>
-          <p className="text-muted-foreground">Redirecting...</p>
+          <p className="text-muted-foreground">Redirecting to {redirectUrl}...</p>
         </div>
-        <Button onClick={() => navigate(redirectUrl)}>
-          Continue to {redirectUrl}
+        <Button onClick={() => navigate(redirectUrl, { replace: true })}>
+          Continue to {redirectUrl.replace(/^\/?/, '/')}
         </Button>
       </div>
     );
